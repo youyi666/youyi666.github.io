@@ -1,91 +1,151 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>销售数据展示</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Sales Summary</title>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- DataTables JS -->
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <style>
-        table { width: 50%; margin: 20px auto; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        th { background-color: #f2f2f2; }
-        .hidden { display: none; }
-        .toggleDetails { cursor: pointer; color: blue; text-decoration: underline; }
+        table.dataTable tbody tr.child {
+            background-color: #f9f9f9;
+            display: none;
+        }
+        .child-row {
+            background-color: #e6f7ff;
+        }
+        .child-row td {
+            padding-left: 20px;  /* Adjust padding to make it look like a nested table */
+        }
     </style>
 </head>
 <body>
+    <h1>Platform Sales Summary</h1>
+    <table id="example" class="display">
+        <thead>
+            <tr>
+                <th>平台</th>
+                <th>总销量</th>
+                <th>总销售额</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be dynamically loaded here -->
+        </tbody>
+    </table>
 
-<h2 style="text-align:center;">平台销售数据</h2>
+    <script>
+        $(document).ready(function() {
+            // GitHub raw file URL
+            const githubFileUrl = 'https://raw.githubusercontent.com/youyi666/youyi666.github.io/refs/heads/main/%E9%94%80%E9%87%8F%E8%A1%A82.csv';
 
-<table id="summaryTable">
-    <thead>
-    <tr>
-        <th>平台</th>
-        <th>总销量</th>
-        <th>总销售额</th>
-    </tr>
-    </thead>
-    <tbody>
-    <!-- 数据将在这里动态插入 -->
-    </tbody>
-</table>
+            // Function to get CSV file content from GitHub
+            function getGitHubFileContent(fileUrl) {
+                return fetch(fileUrl)
+                    .then(response => response.text())
+                    .then(csvData => {
+                        console.log("CSV Data Loaded: ", csvData);  // Log the CSV data to check
+                        return csvData;
+                    })
+                    .catch(error => {
+                        console.error("Error fetching CSV: ", error);
+                    });
+            }
 
-<script>
-    const data = {
-        "A_platform": {
-            "total_sales": 5000,
-            "total_revenue": 150000,
-            "models": [
-                {"model": "A1", "sales": 200, "revenue": 60000},
-                {"model": "A2", "sales": 150, "revenue": 45000},
-                {"model": "A3", "sales": 150, "revenue": 45000}
-            ]
-        },
-        "B_platform": {
-            "total_sales": 7000,
-            "total_revenue": 210000,
-            "models": [
-                {"model": "B1", "sales": 3000, "revenue": 90000},
-                {"model": "B2", "sales": 2000, "revenue": 60000},
-                {"model": "B3", "sales": 2000, "revenue": 60000}
-            ]
-        }
-    };
+            // Function to parse CSV and load into DataTable
+            function loadCSVData(csvData) {
+                const rows = csvData.split('\n').map(row => row.split(','));
+                const tableData = rows.slice(1).map(row => [
+                    row[0].trim(),  // Platform
+                    row[1].trim(),  // Model
+                    parseInt(row[2].trim()),  // Quantity
+                    parseInt(row[3].trim())   // Amount
+                ]);
+                return tableData;
+            }
 
-    const summaryTableBody = document.querySelector('#summaryTable tbody');
-    for (const platform in data) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td class="toggleDetails">${platform}</td><td>${data[platform].total_sales}</td><td>${data[platform].total_revenue}</td>`;
-        // 添加点击事件监听器到每个平台的单元格上
-        row.querySelector('.toggleDetails').addEventListener('click', function() {
-            showDetails(platform);
-        });
-        summaryTableBody.appendChild(row);
-    }
+            // Fetch and process data from GitHub CSV file
+            getGitHubFileContent(githubFileUrl).then(csvData => {
+                const tableData = loadCSVData(csvData);
+                
+                // Group data by platform
+                const platformSummary = [];
+                tableData.forEach(item => {
+                    const platform = item[0]; // Platform column (first column)
+                    if (!platformSummary[platform]) {
+                        platformSummary[platform] = { platform, totalQuantity: 0, totalAmount: 0, details: [] };
+                    }
+                    platformSummary[platform].totalQuantity += item[2]; // Quantity (third column)
+                    platformSummary[platform].totalAmount += item[3]; // Amount (fourth column)
+                    platformSummary[platform].details.push(item);
+                });
 
-    function showDetails(platformName) {
-        let detailsRow = document.querySelector(`#details-${platformName}`);
-        if (!detailsRow) {
-            const detailsTable = document.createElement('table');
-            detailsTable.id = `details-${platformName}`;
-            detailsTable.style.width = '50%';
-            detailsTable.style.margin = '20px auto';
-            detailsTable.style.borderCollapse = 'collapse';
+                // Populate the table with platform summary
+                const summaryData = [];
+                Object.keys(platformSummary).forEach(platform => {
+                    const data = platformSummary[platform];
+                    summaryData.push([data.platform, data.totalQuantity, data.totalAmount, data.platform]);
+                });
 
-            const headerRow = document.createElement('tr');
-            headerRow.innerHTML = '<th>型号</th><th>销量</th><th>销售额</th>';
-            detailsTable.appendChild(headerRow);
+                // Append platform summary to the table
+                summaryData.forEach(row => {
+                    $('#example tbody').append(`
+                        <tr class="platform-row">
+                            <td>${row[0]}</td>
+                            <td>${row[1]}</td>
+                            <td>${row[2]}</td>
+                        </tr>
+                    `);
+                });
 
-            data[platformName].models.forEach(model => {
-                const modelRow = document.createElement('tr');
-                modelRow.innerHTML = `<td>${model.model}</td><td>${model.sales}</td><td>${model.revenue}</td>`;
-                detailsTable.appendChild(modelRow);
+                // Initialize DataTable with row grouping by platform
+                var table = $('#example').DataTable({
+                    "dom": 'Bfrtip',
+                    "buttons": [
+                        'copy', 'csv', 'excel', 'pdf', 'print'
+                    ],
+                    "order": [[0, 'asc']],  // Sort by platform
+                    "columnDefs": [
+                        {
+                            "targets": 0,  // Platform column
+                            "visible": true
+                        }
+                    ]
+                });
+
+                // Add drill down functionality
+                $('#example tbody').on('click', '.platform-row', function () {
+                    var tr = $(this);
+                    var row = table.row(tr);
+
+                    // Get the platform name
+                    const platformName = tr.children('td').eq(0).text();
+
+                    // Filter the data to show models of the clicked platform
+                    const childData = platformSummary[platformName].details;
+                    let childHtml = '<table class="child-row"><thead><tr><th>型号</th><th>销量</th><th>销售额</th></tr></thead><tbody>';
+                    childData.forEach(d => {
+                        childHtml += `<tr><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td></tr>`;
+                    });
+                    childHtml += '</tbody></table>';
+
+                    // If the row is already expanded, hide it; otherwise, show it
+                    if (row.child.isShown()) {
+                        row.child.hide();
+                        tr.removeClass('shown');
+                    } else {
+                        row.child(childHtml).show();
+                        tr.addClass('shown');
+                    }
+                });
+            }).catch(error => {
+                console.error("Error fetching file from GitHub: ", error);
             });
-
-            summaryTableBody.parentNode.insertBefore(detailsTable, summaryTableBody.nextSibling);
-        } else {
-            detailsRow.classList.toggle('hidden');
-        }
-    }
-</script>
-
+        });
+    </script>
 </body>
 </html>
