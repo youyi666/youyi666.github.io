@@ -1,28 +1,101 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
-    <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JS 示例</title>
+    <title>Pivot Table with Drill Down</title>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- DataTables JS -->
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <style>
+        table.dataTable tbody tr.child {
+            background-color: #f9f9f9;
+            display: none;
+        }
+        .child-row {
+            background-color: #e6f7ff;
+        }
+    </style>
 </head>
 <body>
+    <h1>Interactive Pivot Table with Drill Down</h1>
+    <table id="example" class="display">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Subcategory</th>
+                <th>Sales</th>
+                <th>Month</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Random data generation (you can replace with your actual data) -->
+        </tbody>
+    </table>
 
-    <p id="text">点按钮，变红！</p>
-<button onclick="changeBackgroundColor()">Click me to change background color</button>
+    <script>
+        $(document).ready(function() {
+            // Random data generation for testing
+            const categories = ['Electronics', 'Clothing', 'Home & Kitchen', 'Books', 'Toys'];
+            const subcategories = ['Phone', 'Laptop', 'Shirt', 'Shoes', 'Furniture', 'Appliance', 'Novel', 'Action Figure'];
+            const months = ['January', 'February', 'March', 'April', 'May'];
 
-<script>
-function changeBackgroundColor() {
-    document.body.style.backgroundColor = "yellow";
-}
-</script>
-<nav>
-    <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="about.html">About</a></li>
-    </ul>
-</nav>
+            const randomData = [];
 
+            for (let i = 0; i < 100; i++) {
+                const category = categories[Math.floor(Math.random() * categories.length)];
+                const subcategory = subcategories[Math.floor(Math.random() * subcategories.length)];
+                const month = months[Math.floor(Math.random() * months.length)];
+                const sales = (Math.random() * 10000).toFixed(2);
+                randomData.push([category, subcategory, sales, month]);
+            }
 
+            // Append the random data to the table
+            randomData.forEach(row => {
+                $('#example tbody').append(`<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td></tr>`);
+            });
+
+            // Initialize DataTable
+            var table = $('#example').DataTable({
+                "dom": 'Bfrtip',
+                "buttons": [
+                    'copy', 'csv', 'excel', 'pdf', 'print'
+                ],
+                "rowGroup": {
+                    dataSrc: 0 // Group by Category
+                },
+                "order": [[0, 'asc']]
+            });
+
+            // Add drill down functionality
+            $('#example tbody').on('click', 'tr', function () {
+                var tr = $(this);
+                var row = table.row(tr);
+
+                if (row.child.isShown()) {
+                    row.child.hide();
+                    tr.removeClass('shown');
+                } else {
+                    var data = row.data();
+                    var category = data[0];
+                    var subcategory = data[1];
+                    var month = data[3];
+
+                    var childData = randomData.filter(d => d[0] === category && d[1] === subcategory && d[3] === month);
+                    var childHtml = '<table class="child-row"><thead><tr><th>Category</th><th>Subcategory</th><th>Sales</th><th>Month</th></tr></thead><tbody>';
+                    childData.forEach(d => {
+                        childHtml += `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td></tr>`;
+                    });
+                    childHtml += '</tbody></table>';
+
+                    row.child(childHtml).show();
+                    tr.addClass('shown');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
