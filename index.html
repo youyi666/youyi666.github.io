@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pivot Table with Drill Down</title>
+    <title>Pivot Table with Drill Down from GitHub</title>
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
     <!-- jQuery -->
@@ -21,79 +21,85 @@
     </style>
 </head>
 <body>
-    <h1>Interactive Pivot Table with Drill Down</h1>
+    <h1>Interactive Pivot Table with Drill Down from GitHub</h1>
     <table id="example" class="display">
         <thead>
             <tr>
-                <th>Category</th>
-                <th>Subcategory</th>
-                <th>Sales</th>
-                <th>Month</th>
+                <th>平台</th>
+                <th>7.规格/型号</th>
+                <th>求和项:8.数量/套</th>
+                <th>求和项:11.订单行金额</th>
             </tr>
         </thead>
         <tbody>
-            <!-- Random data generation (you can replace with your actual data) -->
+            <!-- Data will be loaded here from GitHub -->
         </tbody>
     </table>
 
     <script>
         $(document).ready(function() {
-            // Random data generation for testing
-            const categories = ['Electronics', 'Clothing', 'Home & Kitchen', 'Books', 'Toys'];
-            const subcategories = ['Phone', 'Laptop', 'Shirt', 'Shoes', 'Furniture', 'Appliance', 'Novel', 'Action Figure'];
-            const months = ['January', 'February', 'March', 'April', 'May'];
+            // GitHub raw file URL (replace with your file URL)
+            const githubFileUrl = 'https://github.com/youyi666/youyi666.github.io/raw/d11d1c85cec68ca31f6e07eaf90b9a65e169894d/%E9%94%80%E9%87%8F%E8%A1%A8.csv'; 
 
-            const randomData = [];
-
-            for (let i = 0; i < 100; i++) {
-                const category = categories[Math.floor(Math.random() * categories.length)];
-                const subcategory = subcategories[Math.floor(Math.random() * subcategories.length)];
-                const month = months[Math.floor(Math.random() * months.length)];
-                const sales = (Math.random() * 10000).toFixed(2);
-                randomData.push([category, subcategory, sales, month]);
+            // Function to get file content from GitHub
+            function getGitHubFileContent(fileUrl) {
+                return fetch(fileUrl).then(response => response.text());
             }
 
-            // Append the random data to the table
-            randomData.forEach(row => {
-                $('#example tbody').append(`<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td></tr>`);
-            });
+            // Function to parse CSV and load into DataTable
+            function loadCSVData(csvData) {
+                const rows = csvData.split('\n').map(row => row.split(','));
+                const tableData = rows.slice(1).map(row => [row[0], row[1], row[7], row[10]]);
+                return tableData;
+            }
 
-            // Initialize DataTable
-            var table = $('#example').DataTable({
-                "dom": 'Bfrtip',
-                "buttons": [
-                    'copy', 'csv', 'excel', 'pdf', 'print'
-                ],
-                "rowGroup": {
-                    dataSrc: 0 // Group by Category
-                },
-                "order": [[0, 'asc']]
-            });
+            // Fetch data from GitHub and initialize table
+            getGitHubFileContent(githubFileUrl).then(csvData => {
+                const tableData = loadCSVData(csvData);
+                
+                // Populate the table with data
+                tableData.forEach(row => {
+                    $('#example tbody').append(`<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td></tr>`);
+                });
 
-            // Add drill down functionality
-            $('#example tbody').on('click', 'tr', function () {
-                var tr = $(this);
-                var row = table.row(tr);
+                // Initialize DataTable
+                var table = $('#example').DataTable({
+                    "dom": 'Bfrtip',
+                    "buttons": [
+                        'copy', 'csv', 'excel', 'pdf', 'print'
+                    ],
+                    "rowGroup": {
+                        dataSrc: 0 // Group by Platform
+                    },
+                    "order": [[0, 'asc']]
+                });
 
-                if (row.child.isShown()) {
-                    row.child.hide();
-                    tr.removeClass('shown');
-                } else {
-                    var data = row.data();
-                    var category = data[0];
-                    var subcategory = data[1];
-                    var month = data[3];
+                // Add drill down functionality
+                $('#example tbody').on('click', 'tr', function () {
+                    var tr = $(this);
+                    var row = table.row(tr);
 
-                    var childData = randomData.filter(d => d[0] === category && d[1] === subcategory && d[3] === month);
-                    var childHtml = '<table class="child-row"><thead><tr><th>Category</th><th>Subcategory</th><th>Sales</th><th>Month</th></tr></thead><tbody>';
-                    childData.forEach(d => {
-                        childHtml += `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td></tr>`;
-                    });
-                    childHtml += '</tbody></table>';
+                    if (row.child.isShown()) {
+                        row.child.hide();
+                        tr.removeClass('shown');
+                    } else {
+                        var data = row.data();
+                        var platform = data[0];
+                        var model = data[1];
 
-                    row.child(childHtml).show();
-                    tr.addClass('shown');
-                }
+                        var childData = tableData.filter(d => d[0] === platform && d[1] === model);
+                        var childHtml = '<table class="child-row"><thead><tr><th>平台</th><th>7.规格/型号</th><th>求和项:8.数量/套</th><th>求和项:11.订单行金额</th></tr></thead><tbody>';
+                        childData.forEach(d => {
+                            childHtml += `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td></tr>`;
+                        });
+                        childHtml += '</tbody></table>';
+
+                        row.child(childHtml).show();
+                        tr.addClass('shown');
+                    }
+                });
+            }).catch(error => {
+                console.error("Error fetching file from GitHub: ", error);
             });
         });
     </script>
