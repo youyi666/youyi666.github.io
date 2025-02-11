@@ -97,7 +97,7 @@
                         var platform = data[0];
                         var model = data[1];
 
-                        var childData = tableData.filter(d => d[0] === platform && d[1] === model);
+                        var childData = tableData.filter(d => d[0] === platform);
                         var childHtml = '<table class="child-row"><thead><tr><th>平台</th><th>7.规格/型号</th><th>求和项:8.数量/套</th><th>求和项:11.订单行金额</th></tr></thead><tbody>';
                         childData.forEach(d => {
                             childHtml += `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td></tr>`;
