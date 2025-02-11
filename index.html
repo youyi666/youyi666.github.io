@@ -1,125 +1,145 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pivot Table with Drill Down from GitHub</title>
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- DataTables JS -->
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <title>销售数据看板</title>
     <style>
-        table.dataTable tbody tr.child {
-            background-color: #f9f9f9;
-            display: none;
-        }
-        .child-row {
-            background-color: #e6f7ff;
-        }
+        table { border-collapse: collapse; margin: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        tr:hover { background-color: #f5f5f5; }
+        .back-btn { margin: 20px; cursor: pointer; color: blue; }
     </style>
 </head>
 <body>
-    <h1>Interactive Pivot Table with Drill Down from GitHub</h1>
-    <table id="example" class="display">
-        <thead>
-            <tr>
-                <th>平台</th>
-                <th>7.规格/型号</th>
-                <th>求和项:8.数量/套</th>
-                <th>求和项:11.订单行金额</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Data will be loaded here from GitHub -->
-        </tbody>
-    </table>
+    <!-- 汇总表格容器 -->
+    <div id="summary-container">
+        <h2>平台销售汇总</h2>
+        <table id="summary-table">
+            <thead>
+                <tr>
+                    <th>平台</th>
+                    <th>总销量</th>
+                    <th>总销售额</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 详情表格容器 (初始隐藏) -->
+    <div id="detail-container" style="display: none;">
+        <div class="back-btn" onclick="showSummary()">← 返回汇总</div>
+        <h2 id="platform-title"></h2>
+        <table id="detail-table">
+            <thead>
+                <tr>
+                    <th>型号</th>
+                    <th>销量</th>
+                    <th>销售额</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
     <script>
-        $(document).ready(function() {
-            // GitHub raw file URL
-            const githubFileUrl = 'https://raw.githubusercontent.com/youyi666/youyi666.github.io/refs/heads/main/%E9%94%80%E9%87%8F%E8%A1%A82.csv'; 
+        // 数据源
+        const DATA_URL = 'https://raw.githubusercontent.com/youyi666/youyi666.github.io/main/%E9%94%80%E9%87%8F%E8%A1%A82.csv';
 
-            // Function to get file content from GitHub
-            function getGitHubFileContent(fileUrl) {
-                return fetch(fileUrl)
-                    .then(response => response.text())
-                    .then(csvData => {
-                        console.log("CSV Data Loaded: ", csvData);  // Log the CSV data to check
-                        return csvData;
-                    });
+        // 加载数据并初始化
+        async function loadData() {
+            try {
+                const response = await fetch(DATA_URL);
+                const csvData = await response.text();
+                const data = parseCSV(csvData);
+                initSummaryTable(data);
+            } catch (error) {
+                console.error('数据加载失败:', error);
             }
+        }
 
-            // Function to parse CSV and load into DataTable
-            function loadCSVData(csvData) {
-                console.log("Parsing CSV Data...");
-
-                const rows = csvData.split('\n').map(row => row.split(','));
-                console.log("Parsed Rows: ", rows);  // Log the parsed rows
-
-                // Extracting platform, model, quantity and order value
-                const tableData = rows.slice(1).map(row => [row[0].trim(), row[1].trim(), row[2].trim(), row[3].trim()]);
-                console.log("Table Data: ", tableData);  // Log the final data to be displayed
-                return tableData;
-            }
-
-            // Fetch data from GitHub and initialize table
-            getGitHubFileContent(githubFileUrl).then(csvData => {
-                const tableData = loadCSVData(csvData);
-                
-                // Populate the table with data
-                tableData.forEach(row => {
-                    $('#example tbody').append(`<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td></tr>`);
-                });
-
-                // Initialize DataTable
-                var table = $('#example').DataTable({
-                    "dom": 'Bfrtip',
-                    "buttons": [
-                        'copy', 'csv', 'excel', 'pdf', 'print'
-                    ],
-                    "rowGroup": {
-                        dataSrc: 0 // Group by the first column, which is "平台"
-                    },
-                    "order": [[0, 'asc']],  // Ensure it orders by the first column (平台)
-                    "columnDefs": [
-                        {
-                            "targets": 0,  // Target the "平台" column
-                            "visible": true  // Ensure the "平台" column is visible
-                        }
-                    ]
-                });
-
-                // Add drill down functionality
-                $('#example tbody').on('click', 'tr', function () {
-                    var tr = $(this);
-                    var row = table.row(tr);
-
-                    if (row.child.isShown()) {
-                        row.child.hide();
-                        tr.removeClass('shown');
-                    } else {
-                        var data = row.data();
-                        var platform = data[0];  // Platform (row[0])
-                        var model = data[1];     // Model (row[1])
-
-                        // Get child data based on platform (row[0]) and model (row[1])
-                        var childData = tableData.filter(d => d[0] === platform && d[1] === model);
-                        var childHtml = '<table class="child-row"><thead><tr><th>平台</th><th>7.规格/型号</th><th>求和项:8.数量/套</th><th>求和项:11.订单行金额</th></tr></thead><tbody>';
-                        childData.forEach(d => {
-                            childHtml += `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td></tr>`;
-                        });
-                        childHtml += '</tbody></table>';
-
-                        row.child(childHtml).show();
-                        tr.addClass('shown');
-                    }
-                });
-            }).catch(error => {
-                console.error("Error fetching file from GitHub: ", error);
+        // 解析CSV数据
+        function parseCSV(csv) {
+            const rows = csv.split('\n');
+            const headers = rows[0].split(',');
+            
+            return rows.slice(1).map(row => {
+                const cells = row.split(',');
+                return {
+                    platform: cells[0].trim(),
+                    model: cells[1].trim(),
+                    sales: parseInt(cells[2]),
+                    revenue: parseFloat(cells[3])
+                };
             });
-        });
+        }
+
+        // 初始化汇总表格
+        function initSummaryTable(data) {
+            const platforms = {};
+            
+            // 计算各平台汇总
+            data.forEach(item => {
+                if (!platforms[item.platform]) {
+                    platforms[item.platform] = {
+                        totalSales: 0,
+                        totalRevenue: 0
+                    };
+                }
+                platforms[item.platform].totalSales += item.sales;
+                platforms[item.platform].totalRevenue += item.revenue;
+            });
+
+            // 生成表格行
+            const tbody = document.querySelector('#summary-table tbody');
+            Object.entries(platforms).forEach(([platform, stats]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="cursor: pointer; color: blue;" 
+                        onclick="showDetail('${platform}')">
+                        ${platform}
+                    </td>
+                    <td>${stats.totalSales}</td>
+                    <td>${stats.totalRevenue.toFixed(2)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 显示详情表格
+        function showDetail(platform) {
+            fetch(DATA_URL)
+                .then(response => response.text())
+                .then(csv => {
+                    const data = parseCSV(csv);
+                    const detailData = data.filter(item => item.platform === platform);
+                    
+                    document.getElementById('summary-container').style.display = 'none';
+                    document.getElementById('detail-container').style.display = 'block';
+                    document.getElementById('platform-title').textContent = `${platform} 型号详情`;
+
+                    const tbody = document.querySelector('#detail-table tbody');
+                    tbody.innerHTML = ''; // 清空旧数据
+                    
+                    detailData.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.model}</td>
+                            <td>${item.sales}</td>
+                            <td>${item.revenue.toFixed(2)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                });
+        }
+
+        // 返回汇总视图
+        function showSummary() {
+            document.getElementById('summary-container').style.display = 'block';
+            document.getElementById('detail-container').style.display = 'none';
+        }
+
+        // 页面加载时初始化
+        window.onload = loadData;
     </script>
 </body>
 </html>
