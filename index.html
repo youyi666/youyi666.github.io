@@ -1,145 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>销售数据看板</title>
+    <meta charset="UTF-8">
+    <title>销售数据展示</title>
     <style>
-        table { border-collapse: collapse; margin: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        tr:hover { background-color: #f5f5f5; }
-        .back-btn { margin: 20px; cursor: pointer; color: blue; }
+        table { width: 50%; margin: 20px auto; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        .hidden { display: none; }
+        .toggleDetails { cursor: pointer; color: blue; text-decoration: underline; }
     </style>
 </head>
 <body>
-    <!-- 汇总表格容器 -->
-    <div id="summary-container">
-        <h2>平台销售汇总</h2>
-        <table id="summary-table">
-            <thead>
-                <tr>
-                    <th>平台</th>
-                    <th>总销量</th>
-                    <th>总销售额</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
 
-    <!-- 详情表格容器 (初始隐藏) -->
-    <div id="detail-container" style="display: none;">
-        <div class="back-btn" onclick="showSummary()">← 返回汇总</div>
-        <h2 id="platform-title"></h2>
-        <table id="detail-table">
-            <thead>
-                <tr>
-                    <th>型号</th>
-                    <th>销量</th>
-                    <th>销售额</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
+<h2 style="text-align:center;">平台销售数据</h2>
 
-    <script>
-        // 数据源
-        const DATA_URL = 'https://raw.githubusercontent.com/youyi666/youyi666.github.io/main/%E9%94%80%E9%87%8F%E8%A1%A82.csv';
+<table id="summaryTable">
+    <thead>
+    <tr>
+        <th>平台</th>
+        <th>总销量</th>
+        <th>总销售额</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- 数据将在这里动态插入 -->
+    </tbody>
+</table>
 
-        // 加载数据并初始化
-        async function loadData() {
-            try {
-                const response = await fetch(DATA_URL);
-                const csvData = await response.text();
-                const data = parseCSV(csvData);
-                initSummaryTable(data);
-            } catch (error) {
-                console.error('数据加载失败:', error);
-            }
+<script>
+    const data = {
+        "A_platform": {
+            "total_sales": 5000,
+            "total_revenue": 150000,
+            "models": [
+                {"model": "A1", "sales": 200, "revenue": 60000},
+                {"model": "A2", "sales": 150, "revenue": 45000},
+                {"model": "A3", "sales": 150, "revenue": 45000}
+            ]
+        },
+        "B_platform": {
+            "total_sales": 7000,
+            "total_revenue": 210000,
+            "models": [
+                {"model": "B1", "sales": 3000, "revenue": 90000},
+                {"model": "B2", "sales": 2000, "revenue": 60000},
+                {"model": "B3", "sales": 2000, "revenue": 60000}
+            ]
         }
+    };
 
-        // 解析CSV数据
-        function parseCSV(csv) {
-            const rows = csv.split('\n');
-            const headers = rows[0].split(',');
-            
-            return rows.slice(1).map(row => {
-                const cells = row.split(',');
-                return {
-                    platform: cells[0].trim(),
-                    model: cells[1].trim(),
-                    sales: parseInt(cells[2]),
-                    revenue: parseFloat(cells[3])
-                };
-            });
-        }
+    const summaryTableBody = document.querySelector('#summaryTable tbody');
+    for (const platform in data) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td class="toggleDetails">${platform}</td><td>${data[platform].total_sales}</td><td>${data[platform].total_revenue}</td>`;
+        // 添加点击事件监听器到每个平台的单元格上
+        row.querySelector('.toggleDetails').addEventListener('click', function() {
+            showDetails(platform);
+        });
+        summaryTableBody.appendChild(row);
+    }
 
-        // 初始化汇总表格
-        function initSummaryTable(data) {
-            const platforms = {};
-            
-            // 计算各平台汇总
-            data.forEach(item => {
-                if (!platforms[item.platform]) {
-                    platforms[item.platform] = {
-                        totalSales: 0,
-                        totalRevenue: 0
-                    };
-                }
-                platforms[item.platform].totalSales += item.sales;
-                platforms[item.platform].totalRevenue += item.revenue;
+    function showDetails(platformName) {
+        let detailsRow = document.querySelector(`#details-${platformName}`);
+        if (!detailsRow) {
+            const detailsTable = document.createElement('table');
+            detailsTable.id = `details-${platformName}`;
+            detailsTable.style.width = '50%';
+            detailsTable.style.margin = '20px auto';
+            detailsTable.style.borderCollapse = 'collapse';
+
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = '<th>型号</th><th>销量</th><th>销售额</th>';
+            detailsTable.appendChild(headerRow);
+
+            data[platformName].models.forEach(model => {
+                const modelRow = document.createElement('tr');
+                modelRow.innerHTML = `<td>${model.model}</td><td>${model.sales}</td><td>${model.revenue}</td>`;
+                detailsTable.appendChild(modelRow);
             });
 
-            // 生成表格行
-            const tbody = document.querySelector('#summary-table tbody');
-            Object.entries(platforms).forEach(([platform, stats]) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td style="cursor: pointer; color: blue;" 
-                        onclick="showDetail('${platform}')">
-                        ${platform}
-                    </td>
-                    <td>${stats.totalSales}</td>
-                    <td>${stats.totalRevenue.toFixed(2)}</td>
-                `;
-                tbody.appendChild(row);
-            });
+            summaryTableBody.parentNode.insertBefore(detailsTable, summaryTableBody.nextSibling);
+        } else {
+            detailsRow.classList.toggle('hidden');
         }
+    }
+</script>
 
-        // 显示详情表格
-        function showDetail(platform) {
-            fetch(DATA_URL)
-                .then(response => response.text())
-                .then(csv => {
-                    const data = parseCSV(csv);
-                    const detailData = data.filter(item => item.platform === platform);
-                    
-                    document.getElementById('summary-container').style.display = 'none';
-                    document.getElementById('detail-container').style.display = 'block';
-                    document.getElementById('platform-title').textContent = `${platform} 型号详情`;
-
-                    const tbody = document.querySelector('#detail-table tbody');
-                    tbody.innerHTML = ''; // 清空旧数据
-                    
-                    detailData.forEach(item => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${item.model}</td>
-                            <td>${item.sales}</td>
-                            <td>${item.revenue.toFixed(2)}</td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                });
-        }
-
-        // 返回汇总视图
-        function showSummary() {
-            document.getElementById('summary-container').style.display = 'block';
-            document.getElementById('detail-container').style.display = 'none';
-        }
-
-        // 页面加载时初始化
-        window.onload = loadData;
-    </script>
 </body>
 </html>
