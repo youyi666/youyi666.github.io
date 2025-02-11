@@ -58,7 +58,7 @@
                 const rows = csvData.split('\n').map(row => row.split(','));
                 console.log("Parsed Rows: ", rows);  // Log the parsed rows
 
-                const tableData = rows.slice(1).map(row => [row[0], row[1], row[7], row[10]]);
+                const tableData = rows.slice(1).map(row => [row[0], row[1], row[3], row[4]]);
                 console.log("Table Data: ", tableData);  // Log the final data to be displayed
                 return tableData;
             }
