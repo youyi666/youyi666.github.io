@@ -38,7 +38,7 @@
 
     <script>
         $(document).ready(function() {
-            // GitHub raw file URL (updated to your Raw URL)
+            // GitHub raw file URL
             const githubFileUrl = 'https://raw.githubusercontent.com/youyi666/youyi666.github.io/refs/heads/main/%E9%94%80%E9%87%8F%E8%A1%A82.csv'; 
 
             // Function to get file content from GitHub
@@ -58,7 +58,8 @@
                 const rows = csvData.split('\n').map(row => row.split(','));
                 console.log("Parsed Rows: ", rows);  // Log the parsed rows
 
-                const tableData = rows.slice(1).map(row => [row[0], row[1], row[2], row[3]]);
+                // Extracting platform, model, quantity and order value
+                const tableData = rows.slice(1).map(row => [row[0].trim(), row[1].trim(), row[2].trim(), row[3].trim()]);
                 console.log("Table Data: ", tableData);  // Log the final data to be displayed
                 return tableData;
             }
@@ -73,23 +74,22 @@
                 });
 
                 // Initialize DataTable
-var table = $('#example').DataTable({
-    "dom": 'Bfrtip',
-    "buttons": [
-        'copy', 'csv', 'excel', 'pdf', 'print'
-    ],
-    "rowGroup": {
-        dataSrc: 0 // Group by the first column, which is "平台"
-    },
-    "order": [[0, 'asc']],  // Ensure it orders by the first column (平台)
-    "columnDefs": [
-        {
-            "targets": 0,  // Target the "平台" column
-            "visible": true  // Ensure the "平台" column is visible
-        }
-    ]
-});
-
+                var table = $('#example').DataTable({
+                    "dom": 'Bfrtip',
+                    "buttons": [
+                        'copy', 'csv', 'excel', 'pdf', 'print'
+                    ],
+                    "rowGroup": {
+                        dataSrc: 0 // Group by the first column, which is "平台"
+                    },
+                    "order": [[0, 'asc']],  // Ensure it orders by the first column (平台)
+                    "columnDefs": [
+                        {
+                            "targets": 0,  // Target the "平台" column
+                            "visible": true  // Ensure the "平台" column is visible
+                        }
+                    ]
+                });
 
                 // Add drill down functionality
                 $('#example tbody').on('click', 'tr', function () {
@@ -101,10 +101,11 @@ var table = $('#example').DataTable({
                         tr.removeClass('shown');
                     } else {
                         var data = row.data();
-                        var platform = data[0];
-                        var model = data[1];
+                        var platform = data[0];  // Platform (row[0])
+                        var model = data[1];     // Model (row[1])
 
-                        var childData = tableData.filter(d => d[0] === platform);
+                        // Get child data based on platform (row[0]) and model (row[1])
+                        var childData = tableData.filter(d => d[0] === platform && d[1] === model);
                         var childHtml = '<table class="child-row"><thead><tr><th>平台</th><th>7.规格/型号</th><th>求和项:8.数量/套</th><th>求和项:11.订单行金额</th></tr></thead><tbody>';
                         childData.forEach(d => {
                             childHtml += `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td></tr>`;
