@@ -73,16 +73,23 @@
                 });
 
                 // Initialize DataTable
-                var table = $('#example').DataTable({
-                    "dom": 'Bfrtip',
-                    "buttons": [
-                        'copy', 'csv', 'excel', 'pdf', 'print'
-                    ],
-                    "rowGroup": {
-                        dataSrc: 0 // Group by Platform
-                    },
-                    "order": [[0, 'asc']]
-                });
+var table = $('#example').DataTable({
+    "dom": 'Bfrtip',
+    "buttons": [
+        'copy', 'csv', 'excel', 'pdf', 'print'
+    ],
+    "rowGroup": {
+        dataSrc: 0 // Group by the first column, which is "平台"
+    },
+    "order": [[0, 'asc']],  // Ensure it orders by the first column (平台)
+    "columnDefs": [
+        {
+            "targets": 0,  // Target the "平台" column
+            "visible": true  // Ensure the "平台" column is visible
+        }
+    ]
+});
+
 
                 // Add drill down functionality
                 $('#example tbody').on('click', 'tr', function () {
