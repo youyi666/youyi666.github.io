@@ -38,18 +38,28 @@
 
     <script>
         $(document).ready(function() {
-            // GitHub raw file URL (replace with your file URL)
+            // GitHub raw file URL (updated to your Raw URL)
             const githubFileUrl = 'https://raw.githubusercontent.com/youyi666/youyi666.github.io/refs/heads/main/%E9%94%80%E9%87%8F%E8%A1%A82.csv'; 
 
             // Function to get file content from GitHub
             function getGitHubFileContent(fileUrl) {
-                return fetch(fileUrl).then(response => response.text());
+                return fetch(fileUrl)
+                    .then(response => response.text())
+                    .then(csvData => {
+                        console.log("CSV Data Loaded: ", csvData);  // Log the CSV data to check
+                        return csvData;
+                    });
             }
 
             // Function to parse CSV and load into DataTable
             function loadCSVData(csvData) {
+                console.log("Parsing CSV Data...");
+
                 const rows = csvData.split('\n').map(row => row.split(','));
+                console.log("Parsed Rows: ", rows);  // Log the parsed rows
+
                 const tableData = rows.slice(1).map(row => [row[0], row[1], row[7], row[10]]);
+                console.log("Table Data: ", tableData);  // Log the final data to be displayed
                 return tableData;
             }
 
