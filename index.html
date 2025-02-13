@@ -6,10 +6,14 @@
     <title>Platform Sales Summary</title>
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <!-- DataTables Responsive CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.dataTables.min.css">
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- DataTables JS -->
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <!-- DataTables Responsive JS -->
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
     <style>
         table.dataTable tbody tr.child {
             background-color: #f9f9f9;
@@ -18,14 +22,17 @@
         .child-row {
             background-color: #e6f7ff;
         }
-        .child-row td {
-            padding-left: 20px;  /* Adjust padding to make it look like a nested table */
+        /* Ensure table is responsive */
+        @media (max-width: 600px) {
+            table.dataTable {
+                width: 100% !important;
+            }
         }
     </style>
 </head>
 <body>
     <h1>Platform Sales Summary</h1>
-    <table id="example" class="display">
+    <table id="example" class="display responsive nowrap">
         <thead>
             <tr>
                 <th>平台</th>
@@ -55,20 +62,13 @@
 
             // Function to parse CSV and load into DataTable
             function loadCSVData(csvData) {
-                console.log("Parsing CSV Data...");
-
-                // Split rows by newline and filter out empty rows
-                const rows = csvData.split('\n').map(row => row.split(',')).filter(row => row.length >= 4);
-                console.log("Parsed Rows: ", rows);  // Log the parsed rows
-
-                // Check if the row contains the required data and parse
-                const tableData = rows.map(row => {
-                    if (row[0] && row[1] && !isNaN(row[2]) && !isNaN(row[3])) {
-                        return [row[0].trim(), row[1].trim(), parseInt(row[2].trim()), parseInt(row[3].trim())];
-                    }
-                }).filter(item => item !== undefined);
-                
-                console.log("Table Data: ", tableData);  // Log the final data to be displayed
+                const rows = csvData.split('\n').map(row => row.split(','));
+                const tableData = rows.slice(1).map(row => [
+                    row[0].trim(),  // Platform
+                    row[1].trim(),  // Model
+                    parseInt(row[2].trim()),  // Quantity
+                    parseInt(row[3].trim())   // Amount
+                ]);
                 return tableData;
             }
 
@@ -116,6 +116,7 @@
                         dataSrc: 0  // Group by the first column, which is "平台"
                     },
                     "order": [[0, 'asc']],  // Ensure it orders by the first column (平台)
+                    "responsive": true,  // Enable responsive table layout
                     "columnDefs": [
                         {
                             "targets": 0,  // Target the "平台" column
