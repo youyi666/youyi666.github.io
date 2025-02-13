@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Platform Sales Summary</title>
+    <title>Platform Sales Summary with Split Bars</title>
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
     <!-- jQuery -->
@@ -18,19 +18,28 @@
         .child-row {
             background-color: #e6f7ff;
         }
-        .child-row td {
-            padding-left: 20px;  /* Adjust padding to make it look like a nested table */
+        .bar {
+            height: 16px;
+            margin: 2px 0;
+            border-radius: 3px;
+        }
+        .quantity-bar {
+            background-color: #4CAF50;
+        }
+        .amount-bar {
+            background-color: #2196F3;
         }
     </style>
 </head>
 <body>
-    <h1>Platform Sales Summary</h1>
+    <h1>Platform Sales Summary with Split Bars</h1>
     <table id="example" class="display">
         <thead>
             <tr>
                 <th>平台</th>
-                <th>总销量</th>
-                <th>总销售额</th>
+                <th>型号</th>
+                <th>销量</th>
+                <th>销售额</th>
             </tr>
         </thead>
         <tbody>
@@ -40,7 +49,7 @@
 
     <script>
         $(document).ready(function() {
-            // GitHub raw file URL (updated to your Raw URL)
+            // Data source URL (update this URL to change the data source)
             const githubFileUrl = 'https://raw.githubusercontent.com/youyi666/youyi666.github.io/refs/heads/main/%E7%BE%8E%E5%8D%9A%E6%97%A5%E6%8A%A55.csv'; 
 
             // Function to get file content from GitHub
@@ -55,12 +64,16 @@
 
             // Function to parse CSV and load into DataTable
             function loadCSVData(csvData) {
-                console.log("Parsing CSV Data...");
-
-                const rows = csvData.split('\n').map(row => row.split(','));
+                const rows = csvData.split('\n').map(row => row.split(',')).filter(row => row.length >= 4); // Filter empty or incomplete rows
                 console.log("Parsed Rows: ", rows);  // Log the parsed rows
 
-                const tableData = rows.slice(1).map(row => [row[0].trim(), row[1].trim(), parseInt(row[2].trim()), parseInt(row[3].trim())]);
+                // Check if the row contains the required data and parse
+                const tableData = rows.map(row => {
+                    if (row[0] && row[1] && !isNaN(row[2]) && !isNaN(row[3])) {
+                        return [row[0].trim(), row[1].trim(), parseInt(row[2].trim()), parseInt(row[3].trim())];
+                    }
+                }).filter(item => item !== undefined);
+                
                 console.log("Table Data: ", tableData);  // Log the final data to be displayed
                 return tableData;
             }
@@ -69,75 +82,32 @@
             getGitHubFileContent(githubFileUrl).then(csvData => {
                 const tableData = loadCSVData(csvData);
 
-                // Group data by platform
-                const platformSummary = [];
-                tableData.forEach(item => {
-                    const platform = item[0]; // Platform column (first column)
-                    if (!platformSummary[platform]) {
-                        platformSummary[platform] = { platform, totalQuantity: 0, totalAmount: 0, details: [] };
-                    }
-                    platformSummary[platform].totalQuantity += item[2]; // Quantity (third column)
-                    platformSummary[platform].totalAmount += item[3]; // Amount (fourth column)
-                    platformSummary[platform].details.push(item);
-                });
+                // Populate the table with data
+                tableData.forEach(row => {
+                    const quantityPercentage = (row[2] / Math.max(...tableData.map(d => d[2]))) * 100; // Calculate max and percentage
+                    const amountPercentage = (row[3] / Math.max(...tableData.map(d => d[3]))) * 100;   // Same for amount
 
-                // Populate the table with platform summary
-                const summaryData = [];
-                Object.keys(platformSummary).forEach(platform => {
-                    const data = platformSummary[platform];
-                    summaryData.push([data.platform, data.totalQuantity, data.totalAmount, data.platform]);
-                });
-
-                // Append platform summary to the table
-                summaryData.forEach(row => {
                     $('#example tbody').append(`
-                        <tr class="platform-row">
+                        <tr>
                             <td>${row[0]}</td>
                             <td>${row[1]}</td>
-                            <td>${row[2]}</td>
+                            <td>
+                                <div class="bar quantity-bar" style="width: ${quantityPercentage}%"></div> ${row[2]}
+                            </td>
+                            <td>
+                                <div class="bar amount-bar" style="width: ${amountPercentage}%"></div> ${row[3]}
+                            </td>
                         </tr>
                     `);
                 });
 
-                // Initialize DataTable with row grouping by platform
+                // Initialize DataTable
                 var table = $('#example').DataTable({
                     "dom": 'Bfrtip',
                     "buttons": [
                         'copy', 'csv', 'excel', 'pdf', 'print'
                     ],
-                    "rowGroup": {
-                        dataSrc: 0  // Group by the first column, which is "平台"
-                    },
-                    "order": [[0, 'asc']],  // Ensure it orders by the first column (平台)
-                    "columnDefs": [
-                        {
-                            "targets": 0,  // Target the "平台" column
-                            "visible": true  // Ensure the "平台" column is visible
-                        }
-                    ]
-                });
-
-                // Add drill down functionality
-                $('#example tbody').on('click', '.platform-row', function () {
-                    var tr = $(this);
-                    var row = table.row(tr);
-
-                    if (row.child.isShown()) {
-                        row.child.hide();
-                        tr.removeClass('shown');
-                    } else {
-                        var data = row.data();
-                        var platform = data[0];
-                        var childData = tableData.filter(d => d[0] === platform);
-                        var childHtml = '<table class="child-row"><thead><tr><th>平台</th><th>7.规格/型号</th><th>求和项:8.数量/套</th><th>求和项:11.订单行金额</th></tr></thead><tbody>';
-                        childData.forEach(d => {
-                            childHtml += `<tr><td>${d[0]}</td><td>${d[1]}</td><td>${d[2]}</td><td>${d[3]}</td></tr>`;
-                        });
-                        childHtml += '</tbody></table>';
-
-                        row.child(childHtml).show();
-                        tr.addClass('shown');
-                    }
+                    "order": [[0, 'asc']]  // Order by platform (first column)
                 });
             }).catch(error => {
                 console.error("Error fetching file from GitHub: ", error);
